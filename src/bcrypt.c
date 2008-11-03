@@ -63,12 +63,13 @@
 #define BCRYPT_BLOCKS 6		/* Ciphertext blocks */
 #define BCRYPT_MINROUNDS 16	/* we have log2(rounds) in salt */
 
-static void encode_salt(char *, u_int8_t *, u_int16_t, u_int8_t);
+char *bcrypt(const char *, const char *);
+void encode_salt(char *, u_int8_t *, u_int16_t, u_int8_t);
+
 static void encode_base64(u_int8_t *, u_int8_t *, u_int16_t);
 static void decode_base64(u_int8_t *, u_int16_t, u_int8_t *);
 
 static char    encrypted[_PASSWORD_LEN];
-static char    gsalt[7 + (BCRYPT_MAXSALT * 4 + 2) / 3 + 1];
 static char    error[] = ":";
 
 const static u_int8_t Base64Code[] =
@@ -126,7 +127,7 @@ decode_base64(u_int8_t *buffer, u_int16_t len, u_int8_t *data)
 	}
 }
 
-static void
+void
 encode_salt(char *salt, u_int8_t *csalt, u_int16_t clen, u_int8_t logr)
 {
 	salt[0] = '$';

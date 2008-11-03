@@ -1,3 +1,43 @@
 *.beam
 ebin
 _build/
+lib/bcrypt/bcrypt
+
+## Make-related
+Makefile
+
+## Autoconf
+m4
+Makefile.in
+config.guess
+config.log
+config.status
+config.sub
+config.h
+config.h.in
+configure
+depcomp
+install-sh
+libtool
+ltmain.sh
+missing
+aclocal.m4
+acinclude.m4
+autom4te.cache
+stamp-*
+INSTALL
+
+## libtool
+.deps
+.erl
+.libs
+
+## Intermediate compilation files
+*.la
+*.lo
+*.loT
+*.o
+
+## Distribution files
+*.gz
+*.zip

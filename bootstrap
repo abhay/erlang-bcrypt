@@ -1,0 +1,193 @@
+#!/bin/sh -e
+
+# Bootstrap the pristine source ready for distribution and deployment.
+
+SCRIPT_OK=0
+SCRIPT_ERROR=1
+
+ACINCLUDE_FILE="acinclude.m4"
+ACINCLUDE_IN_FILE="acinclude.m4.in"
+ACINCLUDE_TMP_FILE="acinclude.m4.tmp"
+AUTHORS_FILE="authors.xml"
+BUILD_AUX_DIRECTORY="build-aux"
+CONFIG_GUESS_FILE="build-aux/config.guess"
+CONFIG_SUB_FILE="build-aux/config.sub"
+
+basename=`basename $0`
+
+get () {
+    variable_name=$1
+    echo "changequote(\`[', \`]')" > $ACINCLUDE_TMP_FILE
+    sed -e "s/m4_//" < $ACINCLUDE_IN_FILE >> $ACINCLUDE_TMP_FILE
+    echo $variable_name >> $ACINCLUDE_TMP_FILE
+    if test -x "`which m4 || true`"; then
+        `which m4` $ACINCLUDE_TMP_FILE | grep -v "^$" || true
+    else
+        if test -x "`which gm4 || true`"; then
+            `which gm4` $ACINCLUDE_TMP_FILE | grep -v "^$" || true
+        else
+            echo unknown
+        fi
+    fi
+    rm -f $ACINCLUDE_TMP_FILE
+}
+
+display_version () {
+    cat << EOF
+$basename - `get LOCAL_PACKAGE_NAME` `get LOCAL_VERSION_PRIMARY`
+
+Copyright (c) 2008 Hunter Morris <huntermorris@gmail.com>
+
+Permission to use, copy, modify, and distribute this software for any
+purpose with or without fee is hereby granted, provided that the above
+copyright notice and this permission notice appear in all copies.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+EOF
+}
+
+display_help () {
+    cat << EOF
+Usage: $basename [OPTION]...
+
+The $basename script bootstraps the pristine source so that it can be built.
+
+The exit status is 0 for success or 1 for failure.
+
+Options:
+
+  -h  display a short help message and exit
+  -v  display version information and exit
+
+Environment variables:
+
+  REVISION  manual override for revision information
+
+EOF
+}
+
+display_error () {
+    if test -n "$1"; then
+        echo $1 >&2
+    fi
+    echo >&2
+    echo "Try \`"$basename" -h' for more information." >&2
+    exit $SCRIPT_ERROR
+}
+
+generate_acinclude () {
+    if test -z "$REVISION"; then
+        REVISION=""
+    fi
+    if test -z "`get LOCAL_VERSION_STAGE`" -o -z "$REVISION"; then
+        sed "s/%release%//" < $ACINCLUDE_IN_FILE > $ACINCLUDE_FILE
+    else
+        sed "s/%release%/$REVISION/" < $ACINCLUDE_IN_FILE > $ACINCLUDE_FILE
+    fi
+}
+
+process_file_collection () {
+    echo "Installing \`"$BUILD_AUX_DIRECTORY"'"
+    mkdir -p $BUILD_AUX_DIRECTORY
+}
+
+run_aclocal () {
+    if test -x "`which aclocal || true`"; then
+        echo "Running aclocal"
+        `which aclocal` -I m4
+    else
+        echo "Can't find aclocal"
+        exit $SCRIPT_ERROR
+    fi
+}
+
+run_libtoolize () {
+    if test -x "`which libtoolize || true`"; then
+        echo "Running libtoolize"
+        `which libtoolize` -f -c
+    else
+        if test -x "`which glibtoolize || true`"; then
+            echo "Running glibtoolize"
+            `which glibtoolize` -f -c
+        else
+            echo "Can't find libtoolize or glibtoolize"
+            exit $SCRIPT_ERROR
+        fi
+    fi
+}
+
+run_autoheader () {
+    if test -x "`which autoheader || true`"; then
+        echo "Running autoheader"
+        `which autoheader` -f
+    else
+        echo "Can't find autoheader"
+        exit $SCRIPT_ERROR
+    fi
+}
+
+run_automake () {
+    AUTOMAKE_OPTION_COLLECTION=""
+    if test -x "`which automake || true`"; then
+        echo "Running automake"
+        `which automake` -f -c -a --gnits
+    else
+        echo "Can't find automake"
+        exit $SCRIPT_ERROR
+    fi
+}
+
+run_autoconf () {
+    if test -x "`which autoconf || true`"; then
+        echo "Running autoconf"
+        `which autoconf` -f
+    else
+        echo "Can't find autoconf"
+        exit $SCRIPT_ERROR
+    fi
+}
+
+run_command_collection () {
+    run_libtoolize
+    run_aclocal
+    run_autoheader
+    run_automake
+    run_autoconf
+    cat << EOF
+
+You have bootstrapped erlang-bcrypt.
+
+Run \`./configure' to configure the source before you install.
+EOF
+}
+
+parse_script_option_list () {
+    set +e
+    options=`getopt hVC $@`
+    if test ! $? -eq 0; then
+        display_error
+    fi
+    set -e
+    eval set -- $options
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            -h) shift; display_help; exit $SCRIPT_OK;;
+            -V) shift; display_version; exit $SCRIPT_OK;;
+            --) shift; break;;
+            *) display_error "Unknown option: $1" >&2;;
+        esac
+    done
+    cd `dirname $0`
+    process_file_collection
+    generate_acinclude
+    run_command_collection
+}
+
+parse_script_option_list $@

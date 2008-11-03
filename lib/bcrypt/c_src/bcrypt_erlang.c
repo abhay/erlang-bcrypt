@@ -148,7 +148,6 @@ process_hashpw(ETERM *pid, ETERM *data)
   ETERM *pattern, *pwd, *slt;
   char *password, *salt;
   char *ret = NULL;
-  char hashed[200];
   pattern = erl_format("{Pass, Salt}");
   if (erl_match(pattern, data)) {
     pwd = erl_var_content(pattern, "Pass");
@@ -156,13 +155,10 @@ process_hashpw(ETERM *pid, ETERM *data)
     slt = erl_var_content(pattern, "Salt");
     salt = erl_iolist_to_string(slt);
     if (NULL == (ret = bcrypt(password, salt)) ||
-        0 == strncmp(ret, ":", 1)) {
+        0 == strcmp(ret, ":")) {
       retval = process_reply(pid, CMD_HASHPW, "Invalid salt");
     } else {
-      int retlen = strlen(ret);
-      strncpy(hashed, ret, retlen);
-      hashed[retlen] = 0;
-      retval = process_reply(pid, CMD_HASHPW, hashed);
+      retval = process_reply(pid, CMD_HASHPW, ret);
     }
     erl_free_term(pwd);
     erl_free_term(slt);

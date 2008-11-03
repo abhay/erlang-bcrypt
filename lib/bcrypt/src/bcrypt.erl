@@ -95,7 +95,7 @@ gen_salt(Pid, LogRounds) when is_pid(Pid), is_integer(LogRounds),
 hashpw(Pid, Password, Salt)
   when is_pid(Pid), (is_list(Password) orelse is_binary(Password)),
        is_list(Salt) ->
-    gen_server:call(Pid, {hashpw, Password, Salt}).
+    gen_server:call(Pid, {hashpw, Password, Salt}, infinity).
 
 %%====================================================================
 %% gen_server callbacks

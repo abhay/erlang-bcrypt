@@ -23,8 +23,6 @@
 
 -behaviour(gen_server).
 
--export([init/1, handle_request/2]).
-
 %% API
 -export([start_link/1, stop/1]).
 -export([gen_salt/1, gen_salt/2]).

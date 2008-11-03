@@ -34,6 +34,14 @@
 #ifndef _ERL_BLF_H_
 #define _ERL_BLF_H_
 
+/* Solaris compatibility */
+#ifdef __sun
+#define u_int8_t uint8_t
+#define u_int16_t uint16_t
+#define u_int32_t uint32_t
+#define u_int64_t uint64_t
+#endif
+
 /* Schneier specifies a maximum key length of 56 bytes.
  * This ensures that every key bit affects every cipher
  * bit.  However, the subkeys can hold up to 72 bytes.

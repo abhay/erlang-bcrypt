@@ -21,6 +21,8 @@
 #include <ei.h>
 #include <unistd.h>
 
+#include "erl_blf.h"
+
 #define dec_int16(s) ((((unsigned char*)(s))[0] << 8) | \
                       (((unsigned char*)(s))[1]))
 

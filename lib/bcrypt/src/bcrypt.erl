@@ -4,6 +4,12 @@
 %% @doc Wrapper around the OpenBSD Blowfish password hashing algorithm, as
 %% described in "A Future-Adaptable Password Scheme" by Niels Provos and
 %% David Mazieres: http://www.openbsd.org/papers/bcrypt-paper.ps
+%%
+%% Types:
+%%  @type fname() = string() | atom() | deeplist()
+%%  @type deeplist() = [char() | atom() | deeplist()]
+%%  @type password() = string() | binary()
+%%
 %% @end
 %%
 %% Permission to use, copy, modify, and distribute this software for any
@@ -17,7 +23,6 @@
 %% WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
 %% ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 %% OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
-
 -module(bcrypt).
 -author('Hunter Morris <huntermorris@gmail.com>').
 
@@ -42,25 +47,54 @@
 -define(MAX_LOG_ROUNDS(L), L < 32).
 -define(MIN_LOG_ROUNDS(L), L > 3).
 
-%%====================================================================
-%% API
-%%====================================================================
-start_link(Filename) ->
+%%--------------------------------------------------------------------
+%% @doc Start a bcrypt port server
+%% @spec start_link(Filename::fname()) -> {ok, pid()}
+%% @end
+%%--------------------------------------------------------------------
+start_link(Filename) when is_list(Filename)
+                          orelse is_atom(Filename) ->
     gen_server:start_link(?MODULE, [{filename, Filename}], []).
 
+%%--------------------------------------------------------------------
+%% @doc Stop a bcrypt port server
+%% @spec stop(Pid::pid()) -> ok
+%% @end
+%%--------------------------------------------------------------------
 stop(Pid) when is_pid(Pid) ->
     gen_server:call(Pid, stop).
 
+%%--------------------------------------------------------------------
+%% @doc Generate a salt with the default number of rounds, 12.
+%% @see gen_salt/2
+%% @spec gen_salt(Pid::pid()) -> string()
+%% @end
+%%--------------------------------------------------------------------
 gen_salt(Pid) when is_pid(Pid) ->
     gen_salt(Pid, ?DEFAULT_LOG_ROUNDS).
 
+%%--------------------------------------------------------------------
+%% @doc Generate a random text salt for use with hashpw/3. LogRounds
+%% defines the complexity of the hashing, increasing the cost as
+%% 2^log_rounds.
+%% @spec gen_salt(Pid::pid(), integer()) -> string()
+%% @end
+%%--------------------------------------------------------------------
 gen_salt(Pid, LogRounds) when is_pid(Pid), is_integer(LogRounds),
                               ?MAX_LOG_ROUNDS(LogRounds),
                               ?MIN_LOG_ROUNDS(LogRounds) ->
     R = crypto:rand_bytes(16),
     gen_server:call(Pid, {encode_salt, R, LogRounds}).
 
-hashpw(Pid, Password, Salt) when is_pid(Pid) ->
+%%--------------------------------------------------------------------
+%% @doc Hash the specified password and the salt using the OpenBSD Blowfish
+%% password hashing algorithm. Returns the hashed password.
+%% @spec hashpw(Pid::pid(), Password::password(), Salt::string()) -> string()
+%% @end
+%%--------------------------------------------------------------------
+hashpw(Pid, Password, Salt)
+  when is_pid(Pid), (is_list(Password) orelse is_binary(Password)),
+       is_list(Salt) ->
     gen_server:call(Pid, {hashpw, Password, Salt}).
 
 %%====================================================================

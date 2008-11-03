@@ -115,15 +115,15 @@ process_encode_salt(ETERM *pid, ETERM *data)
 {
   int retval = 0;
   ETERM *pattern, *cslt, *lr;
-  char *csalt = NULL;
+  byte *csalt = NULL;
   long log_rounds = -1;
   int csaltlen = -1;
   char ret[64];
   pattern = erl_format("{Csalt, LogRounds}");
   if (erl_match(pattern, data)) {
     cslt = erl_var_content(pattern, "Csalt");
-    csalt = erl_iolist_to_string(cslt);
-    csaltlen = erl_iolist_length(cslt);
+    csaltlen = ERL_BIN_SIZE(cslt);
+    csalt = ERL_BIN_PTR(cslt);
     lr = erl_var_content(pattern, "LogRounds");
     log_rounds = ERL_INT_UVALUE(lr);
     if (16 != csaltlen) {
@@ -131,12 +131,11 @@ process_encode_salt(ETERM *pid, ETERM *data)
     } else if (log_rounds < 4 || log_rounds > 31) {
       retval = process_reply(pid, CMD_SALT, "Invalid number of rounds");
     } else {
-      encode_salt(ret, csalt, csaltlen, log_rounds);
+      encode_salt(ret, (u_int8_t*)csalt, csaltlen, log_rounds);
       retval = process_reply(pid, CMD_SALT, ret);
     }
     erl_free_term(cslt);
     erl_free_term(lr);
-    erl_free(csalt);
   };
   erl_free_term(pattern);
   return retval;

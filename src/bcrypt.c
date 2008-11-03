@@ -63,8 +63,6 @@
 #define BCRYPT_BLOCKS 6		/* Ciphertext blocks */
 #define BCRYPT_MINROUNDS 16	/* we have log2(rounds) in salt */
 
-char   *bcrypt_gensalt(u_int8_t);
-
 static void encode_salt(char *, u_int8_t *, u_int16_t, u_int8_t);
 static void encode_base64(u_int8_t *, u_int8_t *, u_int16_t);
 static void decode_base64(u_int8_t *, u_int16_t, u_int8_t *);
@@ -140,33 +138,7 @@ encode_salt(char *salt, u_int8_t *csalt, u_int16_t clen, u_int8_t logr)
 
 	encode_base64((u_int8_t *) salt + 7, csalt, clen);
 }
-/* Generates a salt for this version of crypt.
-   Since versions may change. Keeping this here
-   seems sensible.
- */
 
-char *
-bcrypt_gensalt(u_int8_t log_rounds)
-{
-	u_int8_t csalt[BCRYPT_MAXSALT];
-	u_int16_t i;
-	u_int32_t seed = 0;
-
-	for (i = 0; i < BCRYPT_MAXSALT; i++) {
-		if (i % 4 == 0)
-			seed = arc4random();
-		csalt[i] = seed & 0xff;
-		seed = seed >> 8;
-	}
-
-	if (log_rounds < 4)
-		log_rounds = 4;
-	else if (log_rounds > 31)
-		log_rounds = 31;
-
-	encode_salt(gsalt, csalt, BCRYPT_MAXSALT, log_rounds);
-	return gsalt;
-}
 /* We handle $Vers$log2(NumRounds)$salt+passwd$
    i.e. $2$04$iwouldntknowwhattosayetKdJ6iFtacBqJdKe6aW7ou */
 
@@ -307,33 +279,3 @@ encode_base64(u_int8_t *buffer, u_int8_t *data, u_int16_t len)
 	}
 	*bp = '\0';
 }
-#if 0
-void
-main()
-{
-	char    blubber[73];
-	char    salt[100];
-	char   *p;
-	salt[0] = '$';
-	salt[1] = BCRYPT_VERSION;
-	salt[2] = '$';
-
-	snprintf(salt + 3, 4, "%2.2u$", 5);
-
-	printf("24 bytes of salt: ");
-	fgets(salt + 6, sizeof(salt) - 6, stdin);
-	salt[99] = 0;
-	printf("72 bytes of password: ");
-	fpurge(stdin);
-	fgets(blubber, sizeof(blubber), stdin);
-	blubber[72] = 0;
-
-	p = crypt(blubber, salt);
-	printf("Passwd entry: %s\n\n", p);
-
-	p = bcrypt_gensalt(5);
-	printf("Generated salt: %s\n", p);
-	p = crypt(blubber, p);
-	printf("Passwd entry: %s\n", p);
-}
-#endif

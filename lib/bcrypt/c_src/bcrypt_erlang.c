@@ -21,17 +21,17 @@
 #include <ei.h>
 #include <unistd.h>
 
-#define BCRYPT_VERSION '2'
-
-#define dec_int16(s) ((((unsigned char*)  (s))[0] << 8) |       \
-                      (((unsigned char*)  (s))[1]))
+#define dec_int16(s) ((((unsigned char*)(s))[0] << 8) | \
+                      (((unsigned char*)(s))[1]))
 
 #define enc_int16(i, s) {((unsigned char*)(s))[0] = ((i) >> 8) & 0xff;  \
-    ((unsigned char*)(s))[1] = (i)         & 0xff;}
+    ((unsigned char*)(s))[1] = (i) & 0xff;}
 
 #define BUFSIZE (1 << 16)
 #define CMD_SALT 0
 #define CMD_HASHPW 1
+
+typedef unsigned char byte;
 
 char *bcrypt(const char *, const char *);
 void encode_salt(char *, u_int8_t *, u_int16_t, u_int8_t);
@@ -40,7 +40,7 @@ void encode_salt(char *, u_int8_t *, u_int16_t, u_int8_t);
  * http://www.erlang.org/doc/tutorial/c_port.html#4.2
  */
 static int
-read_buf(int fd, unsigned char *buf, int len)
+read_buf(int fd, byte *buf, int len)
 {
   int i, got = 0;
   do {
@@ -56,7 +56,7 @@ read_buf(int fd, unsigned char *buf, int len)
 }
 
 static int
-read_cmd(unsigned char *buf)
+read_cmd(byte *buf)
 {
   int len;
   if (read_buf(0, buf, 2) != 2)
@@ -68,7 +68,7 @@ read_cmd(unsigned char *buf)
 }
 
 static int
-write_buf(int fd, unsigned char *buf, int len)
+write_buf(int fd, byte *buf, int len)
 {
   int i, done = 0; 
   do {
@@ -83,9 +83,9 @@ write_buf(int fd, unsigned char *buf, int len)
 }
 
 static int
-write_cmd(unsigned char *buf, int len)
+write_cmd(byte *buf, int len)
 {
-  unsigned char hd[2];
+  byte hd[2];
   enc_int16(len, hd);
   if (write_buf(1, hd, 2) != 2)
     return 0;
@@ -94,11 +94,12 @@ write_cmd(unsigned char *buf, int len)
   return 1;
 }
 
-static int process_reply(ETERM *pid, int cmd, const char *res)
+static int
+process_reply(ETERM *pid, int cmd, const char *res)
 {
   ETERM *result;
   int len, retval;
-  unsigned char *buf;
+  byte *buf;
   result = erl_format("{~i, ~w, ~s}", cmd, pid, res);
   len = erl_term_len(result);
   buf = erl_malloc(len);
@@ -109,7 +110,8 @@ static int process_reply(ETERM *pid, int cmd, const char *res)
   return retval;
 }
 
-static int process_encode_salt(ETERM *pid, ETERM *data)
+static int
+process_encode_salt(ETERM *pid, ETERM *data)
 {
   int retval = 0;
   ETERM *pattern, *cslt, *lr;
@@ -121,7 +123,7 @@ static int process_encode_salt(ETERM *pid, ETERM *data)
   if (erl_match(pattern, data)) {
     cslt = erl_var_content(pattern, "Csalt");
     csalt = erl_iolist_to_string(cslt);
-    csaltlen = strlen(csalt);
+    csaltlen = erl_iolist_length(cslt);
     lr = erl_var_content(pattern, "LogRounds");
     log_rounds = ERL_INT_UVALUE(lr);
     if (16 != csaltlen) {
@@ -140,12 +142,14 @@ static int process_encode_salt(ETERM *pid, ETERM *data)
   return retval;
 }
 
-static int process_hashpw(ETERM *pid, ETERM *data)
+static int
+process_hashpw(ETERM *pid, ETERM *data)
 {
   int retval = 0;
   ETERM *pattern, *pwd, *slt;
   char *password, *salt;
-  char *ret;
+  char *ret = NULL;
+  char hashed[200];
   pattern = erl_format("{Pass, Salt}");
   if (erl_match(pattern, data)) {
     pwd = erl_var_content(pattern, "Pass");
@@ -153,10 +157,13 @@ static int process_hashpw(ETERM *pid, ETERM *data)
     slt = erl_var_content(pattern, "Salt");
     salt = erl_iolist_to_string(slt);
     if (NULL == (ret = bcrypt(password, salt)) ||
-        0 == strcmp(ret, ":")) {
+        0 == strncmp(ret, ":", 1)) {
       retval = process_reply(pid, CMD_HASHPW, "Invalid salt");
     } else {
-      retval = process_reply(pid, CMD_HASHPW, ret);
+      int retlen = strlen(ret);
+      strncpy(hashed, ret, retlen);
+      hashed[retlen] = 0;
+      retval = process_reply(pid, CMD_HASHPW, hashed);
     }
     erl_free_term(pwd);
     erl_free_term(slt);
@@ -198,7 +205,7 @@ process_command(unsigned char *buf)
 static void
 loop(void)
 {
-  unsigned char buf[BUFSIZE];
+  byte buf[BUFSIZE];
   int retval = 0;
   do {
     if (read_cmd(buf) > 0)

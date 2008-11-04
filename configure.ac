@@ -108,6 +108,11 @@ AC_CHECK_HEADER([erl_interface.h], [], [
 Are the erl_interface headers installed? Use the `--with-erl-interface'
 option to specify the path to erl_interface directory.])])
 
+AC_CHECK_LIB(socket, connect)
+AC_CHECK_LIB(resolv, herror)
+AC_CHECK_LIB(nsl, gethostent)
+AC_CHECK_LIB(dl, dlopen)
+
 AC_ARG_VAR([ERL_EXECUTABLE], [path to the `erl' executable])
 AC_ARG_VAR([ERLC_EXECUTABLE], [path to the `erlc' executable])
 

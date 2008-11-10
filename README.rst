@@ -5,16 +5,18 @@ erlang-bcrypt is a wrapper around the OpenBSD Blowfish password hashing
 algorithm, as described in `"A Future-Adaptable Password Scheme"`_ by Niels
 Provos and David Mazieres.
 
-.. _"A Future-Adaptable Password Scheme": http://www.openbsd.org/papers/bcrypt-paper.ps
+.. _"A Future-Adaptable Password Scheme":
+   http://www.openbsd.org/papers/bcrypt-paper.ps
 
 Basic build instructions
 ------------------------
 
-1. Bootstrap `erlang-bcrypt`::
+1. Bootstrap ``erlang-bcrypt``::
 
         ./bootstrap
 
-2. Configure the project, specifying `--with-erlang` and `--with-erl-interface`::
+2. Configure the project, specifying ``--with-erlang`` and
+   ``--with-erl-interface``::
 
         ./configure \
             --with-erlang=R12B-4/lib/erlang/usr/include \
@@ -33,7 +35,8 @@ Basic usage instructions
 
 1. Start the `gen_server` which manages the port::
 
-        1> ok = crypto:start(), {ok, Pid} = bcrypt:start_link("lib/bcrypt/bcrypt").
+        1> ok = crypto:start(),
+        1> {ok, Pid} = bcrypt:start_link("lib/bcrypt/bcrypt").
         {ok, <0.39.0>}
 
 2. Hash a password using a salt with the default number of rounds::

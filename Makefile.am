@@ -14,13 +14,13 @@
 
 SUBDIRS = lib
 
-localdoc_DATA = README.gz LICENSE.gz
+localdoc_DATA = README.rst.gz LICENSE.gz
 
 DISTCLEANFILES = $(localdoc_DATA)
 
-EXTRA_DIST = README LICENSE
+EXTRA_DIST = README.rst LICENSE
 
-README.gz: $(top_srcdir)/README
+README.rst.gz: $(top_srcdir)/README.rst
 	-gzip -9 < $< > $@
 
 LICENSE.gz: $(top_srcdir)/LICENSE

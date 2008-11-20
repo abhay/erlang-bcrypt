@@ -53,7 +53,7 @@
 %% @end
 %%--------------------------------------------------------------------
 start_link(Filename) when is_list(Filename)
-                          orelse is_atom(Filename) ->
+                          ; is_atom(Filename) ->
     gen_server:start_link(?MODULE, [{filename, Filename}], []).
 
 %%--------------------------------------------------------------------
@@ -93,7 +93,7 @@ gen_salt(Pid, LogRounds) when is_pid(Pid), is_integer(LogRounds),
 %% @end
 %%--------------------------------------------------------------------
 hashpw(Pid, Password, Salt)
-  when is_pid(Pid), (is_list(Password) orelse is_binary(Password)),
+  when is_pid(Pid), (is_list(Password) or is_binary(Password)),
        is_list(Salt) ->
     gen_server:call(Pid, {hashpw, Password, Salt}, infinity).
 

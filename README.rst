@@ -20,11 +20,11 @@ Basic build instructions
 
         ./configure
 
-3. Build it
+3. Build it::
 
         make
 
-4. Run it
+4. Run it::
 
         erl -pa lib/bcrypt/ebin
 

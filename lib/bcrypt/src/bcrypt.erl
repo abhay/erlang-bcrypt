@@ -1,5 +1,5 @@
 %% @author Hunter Morris <huntermorris@gmail.com>
-%% @copyright 2008 Hunter Morris
+%% @copyright 2009 Hunter Morris
 %%
 %% @doc Wrapper around the OpenBSD Blowfish password hashing algorithm, as
 %% described in "A Future-Adaptable Password Scheme" by Niels Provos and
@@ -29,9 +29,9 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/1, stop/1]).
--export([gen_salt/1, gen_salt/2]).
--export([hashpw/3]).
+-export([start_link/0, start_link/1, stop/0]).
+-export([gen_salt/0, gen_salt/1]).
+-export([hashpw/2]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2,
@@ -48,54 +48,73 @@
 -define(MIN_LOG_ROUNDS(L), L > 3).
 
 %%--------------------------------------------------------------------
+%% @doc Start a bcrypt port using the default filename
+%% @spec start_link() -> {ok, pid()}
+%% @end
+%%--------------------------------------------------------------------
+start_link() ->
+    case application:get_env(bcrypt, bcrypt_filename) of
+        {ok, Filename} ->
+            start_link(Filename);
+        undefined ->
+            case code:priv_dir(bcrypt) of
+                {error, bad_name} ->
+                    {stop, bcrypt_not_found};
+                Dir ->
+                    start_link(Dir ++ "/bcrypt")
+            end
+    end.
+
+%%--------------------------------------------------------------------
 %% @doc Start a bcrypt port server
 %% @spec start_link(Filename::fname()) -> {ok, pid()}
 %% @end
 %%--------------------------------------------------------------------
 start_link(Filename) when is_list(Filename)
                           ; is_atom(Filename) ->
-    gen_server:start_link(?MODULE, [{filename, Filename}], []).
+    gen_server:start_link({local, ?MODULE}, ?MODULE,
+                          [{filename, Filename}], []).
 
 %%--------------------------------------------------------------------
 %% @doc Stop a bcrypt port server
-%% @spec stop(Pid::pid()) -> ok
+%% @spec stop() -> ok
 %% @end
 %%--------------------------------------------------------------------
-stop(Pid) when is_pid(Pid) ->
-    gen_server:call(Pid, stop).
+stop() ->
+    gen_server:call(?MODULE, stop).
 
 %%--------------------------------------------------------------------
 %% @doc Generate a salt with the default number of rounds, 12.
-%% @see gen_salt/2
-%% @spec gen_salt(Pid::pid()) -> string()
+%% @see gen_salt/1
+%% @spec gen_salt() -> string()
 %% @end
 %%--------------------------------------------------------------------
-gen_salt(Pid) when is_pid(Pid) ->
-    gen_salt(Pid, ?DEFAULT_LOG_ROUNDS).
+gen_salt() ->
+    gen_salt(?DEFAULT_LOG_ROUNDS).
 
 %%--------------------------------------------------------------------
 %% @doc Generate a random text salt for use with hashpw/3. LogRounds
 %% defines the complexity of the hashing, increasing the cost as
 %% 2^log_rounds.
-%% @spec gen_salt(Pid::pid(), integer()) -> string()
+%% @spec gen_salt(integer()) -> string()
 %% @end
 %%--------------------------------------------------------------------
-gen_salt(Pid, LogRounds) when is_pid(Pid), is_integer(LogRounds),
-                              ?MAX_LOG_ROUNDS(LogRounds),
-                              ?MIN_LOG_ROUNDS(LogRounds) ->
+gen_salt(LogRounds) when is_integer(LogRounds),
+                         ?MAX_LOG_ROUNDS(LogRounds),
+                         ?MIN_LOG_ROUNDS(LogRounds) ->
     R = crypto:rand_bytes(16),
-    gen_server:call(Pid, {encode_salt, R, LogRounds}).
+    gen_server:call(?MODULE, {encode_salt, R, LogRounds}).
 
 %%--------------------------------------------------------------------
-%% @doc Hash the specified password and the salt using the OpenBSD Blowfish
-%% password hashing algorithm. Returns the hashed password.
-%% @spec hashpw(Pid::pid(), Password::password(), Salt::string()) -> string()
+%% @doc Hash the specified password and the salt using the OpenBSD
+%% Blowfish password hashing algorithm. Returns the hashed password.
+%% @spec hashpw(Password::password(), Salt::string()) -> string()
 %% @end
 %%--------------------------------------------------------------------
-hashpw(Pid, Password, Salt)
-  when is_pid(Pid), (is_list(Password) or is_binary(Password)),
+hashpw(Password, Salt)
+  when is_list(Password); is_binary(Password),
        is_list(Salt) ->
-    gen_server:call(Pid, {hashpw, Password, Salt}, infinity).
+    gen_server:call(?MODULE, {hashpw, Password, Salt}, infinity).
 
 %%====================================================================
 %% gen_server callbacks

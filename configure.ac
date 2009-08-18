@@ -146,5 +146,6 @@ AC_REVISION([LOCAL_VERSION])
 AC_CONFIG_FILES([Makefile])
 AC_CONFIG_FILES([lib/Makefile])
 AC_CONFIG_FILES([lib/bcrypt/Makefile])
+AC_CONFIG_FILES([lib/bcrypt/priv/Makefile])
 
 AC_OUTPUT

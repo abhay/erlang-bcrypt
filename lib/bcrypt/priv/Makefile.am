@@ -12,32 +12,14 @@
 ## ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 ## OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-SUBDIRS = priv
+bcryptprivlibdir = $(localerlanglibdir)/bcrypt/priv
 
-bcryptebindir = $(localerlanglibdir)/bcrypt/ebin
+bcryptprivlib_PROGRAMS = bcrypt
 
-bcrypt_file_collection = \
-    src/bcrypt_app.erl \
-    src/bcrypt_sup.erl \
-    src/bcrypt.erl
+bcrypt_SOURCES = \
+	../c_src/bcrypt_erlang.c \
+	../c_src/blowfish.c \
+	../c_src/bcrypt.c \
+	../c_src/erl_blf.h
 
-bcryptebin_static_file = ebin/bcrypt.app
-
-bcryptebin_make_generated_file_list = \
-    ebin/bcrypt_app.beam \
-    ebin/bcrypt_sup.beam \
-    ebin/bcrypt.beam
-
-bcryptebin_DATA = \
-    $(bcryptebin_static_file) \
-    $(bcryptebin_make_generated_file_list)
-
-EXTRA_DIST =  \
-    $(bcrypt_file_collection) \
-    $(bcryptebin_static_file)
-
-CLEANFILES = \
-    $(bcryptebin_make_generated_file_list)
-
-ebin/%.beam: src/%.erl
-	$(ERLC) -o ebin $<
+bcrypt_LDADD = -lpthread -lerl_interface -lei

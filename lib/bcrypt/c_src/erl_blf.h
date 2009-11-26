@@ -57,8 +57,8 @@
 
 /* Blowfish context */
 typedef struct BlowfishContext {
-	u_int32_t S[4][256];	/* S-Boxes */
-	u_int32_t P[BLF_N + 2];	/* Subkeys */
+    u_int32_t S[4][256];	/* S-Boxes */
+    u_int32_t P[BLF_N + 2];	/* Subkeys */
 } blf_ctx;
 
 /* Raw access to customized Blowfish

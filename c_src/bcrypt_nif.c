@@ -27,17 +27,16 @@ typedef unsigned char byte;
 char *bcrypt(const char *, const char *);
 void encode_salt(char *, u_int8_t *, u_int16_t, u_int8_t);
 
-static ERL_NIF_TERM
-erl_encode_salt(ErlNifEnv* env, ERL_NIF_TERM csalt_term, ERL_NIF_TERM log_rounds_term)
+static ERL_NIF_TERM erl_encode_salt(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
     ErlNifBinary csalt, bin;
     unsigned long log_rounds;
 
-    if (!enif_inspect_binary(env, csalt_term, &csalt) || 16 != csalt.size) {
+    if (!enif_inspect_binary(env, argv[0], &csalt) || 16 != csalt.size) {
         return enif_make_badarg(env);
     }
 
-    if (!enif_get_ulong(env, log_rounds_term, &log_rounds)) {
+    if (!enif_get_ulong(env, argv[1], &log_rounds)) {
         enif_release_binary(env, &csalt);
         return enif_make_badarg(env);
     }
@@ -49,36 +48,30 @@ erl_encode_salt(ErlNifEnv* env, ERL_NIF_TERM csalt_term, ERL_NIF_TERM log_rounds
 
     encode_salt((char *)bin.data, (u_int8_t*)csalt.data, csalt.size, log_rounds);
     enif_release_binary(env, &csalt);
-    return enif_make_binary(env, &bin);
+    
+    return enif_make_string(env, (char *)bin.data, ERL_NIF_LATIN1);
 }
 
-static ERL_NIF_TERM
-hashpw(ErlNifEnv* env, ERL_NIF_TERM pass_term, ERL_NIF_TERM salt_term)
+static ERL_NIF_TERM hashpw(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
-    ErlNifBinary pass, salt;
+    char pw[1024];
+    char salt[1024];
     char *ret = NULL;
+    
+    (void)memset(&pw, '\0', sizeof(pw));
+    (void)memset(&salt, '\0', sizeof(salt));
+    
+    if (enif_get_string(env, argv[0], pw, sizeof(pw), ERL_NIF_LATIN1) < 1)
+        return enif_make_badarg(env);
 
-    if (!enif_inspect_binary(env, pass_term, &pass)) {
+    if (enif_get_string(env, argv[1], salt, sizeof(salt), ERL_NIF_LATIN1) < 1)
+        return enif_make_badarg(env);
+
+    if (NULL == (ret = bcrypt(pw, salt)) || 0 == strcmp(ret, ":")) {
         return enif_make_badarg(env);
     }
-
-    if (!enif_inspect_binary(env, salt_term, &salt)) {
-        enif_release_binary(env, &pass);
-        return enif_make_badarg(env);
-    }
-
-    char pass_data[pass.size + 1];
-    pass_data[pass.size] = '\0';
-    char salt_data[salt.size + 1];
-    salt_data[salt.size] = '\0';
-
-    if (NULL == (ret = bcrypt(pass_data, salt_data)) || 0 == strcmp(ret, ":")) {
-        return enif_make_badarg(env);
-    }
-
-    enif_release_binary(env, &pass);
-    enif_release_binary(env, &salt);
-    return enif_make_string(env, ret);
+    
+    return enif_make_string(env, ret, ERL_NIF_LATIN1);
 }
 
 static ErlNifFunc bcrypt_nif_funcs[] =
@@ -87,4 +80,4 @@ static ErlNifFunc bcrypt_nif_funcs[] =
     {"hashpw", 2, hashpw}
 };
 
-ERL_NIF_INIT(bcrypt_nif, bcrypt_nif_funcs, NULL, NULL, NULL, NULL)
+ERL_NIF_INIT(bcrypt, bcrypt_nif_funcs, NULL, NULL, NULL, NULL)

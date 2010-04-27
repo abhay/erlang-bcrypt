@@ -17,25 +17,27 @@
 %% WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
 %% ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 %% OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
--module(bcrypt_nif).
+-module(bcrypt).
 -author('Hunter Morris <huntermorris@gmail.com>').
 
 %% API
--export([start/0]).
+-export([init/0]).
 -export([gen_salt/0, gen_salt/1]).
--export([hash/2]).
+-export([hash/2, hashpw/2]).
 
 -define(DEFAULT_LOG_ROUNDS, 12).
 -define(MAX_LOG_ROUNDS(L), L < 32).
 -define(MIN_LOG_ROUNDS(L), L > 3).
+
+-on_load(init/0).
 
 %%--------------------------------------------------------------------
 %% @doc Load the bcrypt NIFs
 %% @spec start() -> ok
 %% @end
 %%--------------------------------------------------------------------
-start() ->
-    erlang:load_nif("bcrypt_nif", 0).
+init() ->
+    erlang:load_nif("priv/bcrypt_drv", 0).
 
 %%--------------------------------------------------------------------
 %% @doc Generate a salt with the default number of rounds, 12.

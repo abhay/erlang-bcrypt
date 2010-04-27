@@ -11,22 +11,13 @@ Provos and David Mazieres.
 Basic build instructions
 ------------------------
 
-1. Bootstrap ``erlang-bcrypt``::
-
-        ./bootstrap
-
-2. Configure the project, optionally specifying ``--with-erlang`` and
-   ``--with-erl-interface``::
-
-        ./configure
-
-3. Build it::
+1. Build it::
 
         make
 
-4. Run it::
+2. Run it::
 
-        erl -pa lib/bcrypt/ebin
+        erl -pa ebin
 
 Basic usage instructions
 ------------------------
@@ -38,17 +29,12 @@ Basic usage instructions
         2> ok = application:start(crypto).
         ok
 
-2. Start the `bcrypt` application::
-
-        3> ok = application:start(bcrypt).
-        ok
-
-3. Hash a password using a salt with the default number of rounds::
+2. Hash a password using a salt with the default number of rounds::
 
         4> Hash = bcrypt:hashpw("foo", bcrypt:gen_salt()).
         "$2...000"
 
-4. Verify the password::
+3. Verify the password::
 
         5> Hash =:= bcrypt:hashpw("foo", Hash).
         true

@@ -33,11 +33,17 @@
 
 %%--------------------------------------------------------------------
 %% @doc Load the bcrypt NIFs
-%% @spec start() -> ok
+%% @spec init() -> ok
 %% @end
 %%--------------------------------------------------------------------
 init() ->
-    erlang:load_nif("priv/bcrypt_drv", 0).
+    NIF = filename:join([
+            filename:dirname(code:which(?MODULE)),
+            "..",
+            "priv",
+            ?MODULE            
+          ]) ++ "_drv",
+    erlang:load_nif(NIF, 0).
 
 %%--------------------------------------------------------------------
 %% @doc Generate a salt with the default number of rounds, 12.

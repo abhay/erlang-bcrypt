@@ -37,13 +37,21 @@
 %% @end
 %%--------------------------------------------------------------------
 init() ->
-    NIF = filename:join([
-            filename:dirname(code:which(?MODULE)),
-            "..",
-            "priv",
-            ?MODULE            
-          ]) ++ "_drv",
-    erlang:load_nif(NIF, 0).
+    Path = filename:join([filename:dirname(code:which(?MODULE)),"..","priv",?MODULE]) ++ "_drv",
+    case filelib:is_file(Path ++ ".so") of
+      true -> erlang:load_nif(Path, 0);
+      false ->
+        Path1 = filename:join([code:lib_dir(),"erlang-bcrypt","priv",?MODULE]) ++ "_drv",
+        case filelib:is_file(Path1 ++ ".so") of
+          true -> erlang:load_nif(Path1, 0);
+          false ->
+            Path2 = filename:join([code:lib_dir(),"bcrypt","priv",?MODULE]) ++ "_drv",
+            case filelib:is_file(Path2 ++ ".so") of
+              true -> erlang:load_nif(Path2, 0);
+              false ->  exit({could_not_find_nif, module, ?MODULE, line, ?LINE})
+            end
+        end    
+    end.
 
 %%--------------------------------------------------------------------
 %% @doc Generate a salt with the default number of rounds, 12.

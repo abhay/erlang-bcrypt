@@ -40,5 +40,15 @@ Basic usage instructions
         true
         6> Hash =:= bcrypt:hashpw("bar", Hash).
         false
-   
-Authors: Hunter Morris (http://skarab.com/)
+
+Authors
+-------
+
+* `Hunter Morris`_
+* `Mrinal Wadhwa`_
+
+.. _Hunter Morris:
+   http://github.com/skarab
+
+.. _Mrinal Wadhwa:
+   http://github.com/mrinalwadhwa

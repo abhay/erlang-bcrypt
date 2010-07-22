@@ -37,17 +37,17 @@ static ERL_NIF_TERM erl_encode_salt(ErlNifEnv* env, int argc, const ERL_NIF_TERM
     }
 
     if (!enif_get_ulong(env, argv[1], &log_rounds)) {
-        enif_release_binary(env, &csalt);
+        enif_release_binary(&csalt);
         return enif_make_badarg(env);
     }
 
-    if (!enif_alloc_binary(env, 64, &bin)) {
-        enif_release_binary(env, &csalt);
+    if (!enif_alloc_binary(64, &bin)) {
+        enif_release_binary(&csalt);
         return enif_make_badarg(env);
     }
 
     encode_salt((char *)bin.data, (u_int8_t*)csalt.data, csalt.size, log_rounds);
-    enif_release_binary(env, &csalt);
+    enif_release_binary(&csalt);
     
     return enif_make_string(env, (char *)bin.data, ERL_NIF_LATIN1);
 }

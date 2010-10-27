@@ -6,7 +6,7 @@
    {modules, [bcrypt]},
    {registered, [bcrypt]},
    {env, []},
-   {applications, [kernel, stdlib, sasl, crypto]},
+   {applications, [kernel, stdlib, crypto]},
    {mod, {bcrypt, []}}
   ]
 }.

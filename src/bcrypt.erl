@@ -37,7 +37,7 @@
 %% @end
 %%--------------------------------------------------------------------
 init() ->
-    Path = filename:join([filename:dirname(code:which(?MODULE)),"..","priv",?MODULE]) ++ "_drv",
+    Path = filename:join([filename:dirname(filename:dirname(code:which(?MODULE))),"priv",?MODULE]) ++ "_drv",
     case filelib:is_file(Path ++ ".so") of
       true -> erlang:load_nif(Path, 0);
       false ->
@@ -81,7 +81,7 @@ encode_salt(_R, _LogRounds) ->
 %%--------------------------------------------------------------------
 %% @doc Hash the specified password and the salt using the OpenBSD
 %% Blowfish password hashing algorithm. Returns the hashed password.
-%% @spec hashpw(Password::binary(), Salt::binary()) -> string()
+%% @spec hash(Password::binary(), Salt::binary()) -> string()
 %% @end
 %%--------------------------------------------------------------------
 hash(Password, Salt) when is_binary(Password), is_binary(Salt) ->

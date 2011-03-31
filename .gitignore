@@ -2,7 +2,9 @@
 ebin/*.beam
 ebin/bcrypt.app
 _build/
-lib/bcrypt/bcrypt
+priv/bcrypt
+priv/bcrypt_nif.so
+logs/*
 
 ## libtool
 .deps

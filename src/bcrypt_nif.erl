@@ -22,12 +22,7 @@
 
 %% API
 -export([init/0]).
--export([gen_salt/0, gen_salt/1]).
--export([hash/2, hashpw/2]).
-
--define(DEFAULT_LOG_ROUNDS, 12).
--define(MAX_LOG_ROUNDS(L), L < 32).
--define(MIN_LOG_ROUNDS(L), L > 3).
+-export([gen_salt/1, hashpw/2]).
 
 -on_load(init/0).
 
@@ -50,18 +45,6 @@ init() ->
           end,
     erlang:load_nif(filename:join(Dir, "bcrypt_nif"), 0).
 
-nif_stub_error(Line) ->
-    erlang:nif_error({nif_not_loaded, module, ?MODULE, line, Line}).
-
-%%--------------------------------------------------------------------
-%% @doc Generate a salt with the default number of rounds, 12.
-%% @see gen_salt/1
-%% @spec gen_salt() -> string()
-%% @end
-%%--------------------------------------------------------------------
-gen_salt() ->
-    gen_salt(?DEFAULT_LOG_ROUNDS).
-
 %%--------------------------------------------------------------------
 %% @doc Generate a random text salt for use with hashpw/3. LogRounds
 %% defines the complexity of the hashing, increasing the cost as
@@ -69,9 +52,8 @@ gen_salt() ->
 %% @spec gen_salt(integer()) -> string()
 %% @end
 %%--------------------------------------------------------------------
-gen_salt(LogRounds) when is_integer(LogRounds),
-                         ?MAX_LOG_ROUNDS(LogRounds),
-                         ?MIN_LOG_ROUNDS(LogRounds) ->
+gen_salt(LogRounds)
+  when is_integer(LogRounds), LogRounds < 32, LogRounds > 3 ->
     R = crypto:rand_bytes(16),
     encode_salt(R, LogRounds).
 
@@ -81,11 +63,11 @@ encode_salt(_R, _LogRounds) ->
 %%--------------------------------------------------------------------
 %% @doc Hash the specified password and the salt using the OpenBSD
 %% Blowfish password hashing algorithm. Returns the hashed password.
-%% @spec hash(Password::binary(), Salt::binary()) -> string()
+%% @spec hashpw(Password::binary(), Salt::binary()) -> string()
 %% @end
 %%--------------------------------------------------------------------
-hash(Password, Salt) when is_binary(Password), is_binary(Salt) ->
-    hashpw(Password, Salt).
-
 hashpw(_Password, _Salt) ->
     nif_stub_error(?LINE).
+
+nif_stub_error(Line) ->
+    erlang:nif_error({nif_not_loaded, module, ?MODULE, line, Line}).

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Hunter Morris <huntermorris@gmail.com>
+ * Copyright (c) 2011 Hunter Morris <hunter.morris@smarkets.com>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -48,7 +48,7 @@ static ERL_NIF_TERM erl_encode_salt(ErlNifEnv* env, int argc, const ERL_NIF_TERM
 
     encode_salt((char *)bin.data, (u_int8_t*)csalt.data, csalt.size, log_rounds);
     enif_release_binary(&csalt);
-    
+
     return enif_make_string(env, (char *)bin.data, ERL_NIF_LATIN1);
 }
 
@@ -57,10 +57,10 @@ static ERL_NIF_TERM hashpw(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
     char pw[1024];
     char salt[1024];
     char *ret = NULL;
-    
+
     (void)memset(&pw, '\0', sizeof(pw));
     (void)memset(&salt, '\0', sizeof(salt));
-    
+
     if (enif_get_string(env, argv[0], pw, sizeof(pw), ERL_NIF_LATIN1) < 1)
         return enif_make_badarg(env);
 
@@ -70,7 +70,7 @@ static ERL_NIF_TERM hashpw(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
     if (NULL == (ret = bcrypt(pw, salt)) || 0 == strcmp(ret, ":")) {
         return enif_make_badarg(env);
     }
-    
+
     return enif_make_string(env, ret, ERL_NIF_LATIN1);
 }
 
@@ -80,4 +80,4 @@ static ErlNifFunc bcrypt_nif_funcs[] =
     {"hashpw", 2, hashpw}
 };
 
-ERL_NIF_INIT(bcrypt, bcrypt_nif_funcs, NULL, NULL, NULL, NULL)
+ERL_NIF_INIT(bcrypt_nif, bcrypt_nif_funcs, NULL, NULL, NULL, NULL)

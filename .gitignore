@@ -1,5 +1,6 @@
 *.beam
 ebin/*.beam
+ebin/bcrypt.app
 _build/
 lib/bcrypt/bcrypt
 

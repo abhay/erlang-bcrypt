@@ -17,8 +17,8 @@
 %% WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
 %% ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 %% OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
--module(bcrypt).
--author('Hunter Morris <huntermorris@gmail.com>').
+-module(bcrypt_nif).
+-author('Hunter Morris <hunter.morris@smarkets.com>').
 
 %% API
 -export([init/0]).
@@ -38,12 +38,20 @@
 %%--------------------------------------------------------------------
 init() ->
     Dir = case code:priv_dir(bcrypt) of
-              {error, bad_name} -> "../priv";
-              Priv              -> Priv
+              {error, bad_name} ->
+                  case code:which(bcrypt) of
+                      Filename when is_list(Filename) ->
+                          filename:join(
+                            [filename:dirname(Filename), "../priv"]);
+                      _ ->
+                          "../priv"
+                  end;
+              Priv -> Priv
           end,
-    erlang:load_nif(filename:join(Dir, "bcrypt"), 0).
+    erlang:load_nif(filename:join(Dir, "bcrypt_nif"), 0).
 
-nif_stub_error(Line) -> erlang:nif_error({nif_not_loaded,module,?MODULE,line,Line}).
+nif_stub_error(Line) ->
+    erlang:nif_error({nif_not_loaded, module, ?MODULE, line, Line}).
 
 %%--------------------------------------------------------------------
 %% @doc Generate a salt with the default number of rounds, 12.

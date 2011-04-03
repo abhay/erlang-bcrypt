@@ -3,8 +3,11 @@
 
 simple_test_() ->
   {timeout, 1000, %% since bcrypt can take long, this is to avoid eunit timeout
-   fun() -> 
-     Hash = bcrypt:hashpw("foo", bcrypt:gen_salt()),
-     ?assert(Hash =:= bcrypt:hashpw("foo", Hash)),
-     ?assertNot(Hash =:= bcrypt:hashpw("bar", Hash))
+   fun() ->
+           application:start(crypto),
+           application:start(bcrypt),
+           {ok, Salt} = bcrypt:gen_salt(),
+           {ok, Hash} = bcrypt:hashpw("foo", Salt),
+           ?assert({ok, Hash} =:= bcrypt:hashpw("foo", Hash)),
+           ?assertNot({ok, Hash} =:= bcrypt:hashpw("bar", Hash))
    end}.

@@ -5,6 +5,7 @@ _build/
 priv/bcrypt
 priv/bcrypt_nif.so
 logs/*
+.eunit
 
 ## libtool
 .deps

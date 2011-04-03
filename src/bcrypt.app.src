@@ -10,7 +10,7 @@
          {default_log_rounds, 12},
 
          % Mechanism to use 'nif' or 'port'
-         {mechanism, nif},
+         {mechanism, port},
 
          % Size of port program pool
          {pool_size, 4}

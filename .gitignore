@@ -22,3 +22,6 @@ logs/*
 ## Distribution files
 *.gz
 *.zip
+
+## Temporary script for compiling the port
+build_port.sh

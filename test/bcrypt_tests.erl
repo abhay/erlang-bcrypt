@@ -97,37 +97,31 @@ start_with(Mechanism) when Mechanism =:= nif; Mechanism =:= port ->
     end.
 
 simple_nif_test_() ->
-    {timeout, 1000,
-     fun() ->
-             ok = start_with(nif),
-             {ok, Salt} = bcrypt:gen_salt(),
-             {ok, Hash} = bcrypt:hashpw("foo", Salt),
-             ?assert({ok, Hash} =:= bcrypt:hashpw("foo", Hash)),
-             ?assertNot({ok, Hash} =:= bcrypt:hashpw("bar", Hash))
-     end}.
+    {setup, fun() -> ok = start_with(nif) end,
+     [{timeout, 1000,
+       fun() ->
+               {ok, Salt} = bcrypt:gen_salt(),
+               {ok, Hash} = bcrypt:hashpw("foo", Salt),
+               ?assert({ok, Hash} =:= bcrypt:hashpw("foo", Hash)),
+               ?assertNot({ok, Hash} =:= bcrypt:hashpw("bar", Hash))
+       end}]}.
 
 pair_nif_test_() ->
-    {timeout, 30000,
-     fun() ->
-             ok = start_with(nif),
-             [?assert({ok, Hash} =:= bcrypt:hashpw(Pass, Salt)) ||
-                 {Pass, Salt, Hash} <- ?PAIRS]
-     end}.
+    {setup, fun() -> ok = start_with(nif) end,
+     [?_assert({ok, Hash} =:= bcrypt:hashpw(Pass, Salt)) ||
+         {Pass, Salt, Hash} <- ?PAIRS]}.
 
 simple_port_test_() ->
-    {timeout, 1000,
-     fun() ->
-             ok = start_with(port),
-             {ok, Salt} = bcrypt:gen_salt(),
-             {ok, Hash} = bcrypt:hashpw("foo", Salt),
-             ?assert({ok, Hash} =:= bcrypt:hashpw("foo", Hash)),
-             ?assertNot({ok, Hash} =:= bcrypt:hashpw("bar", Hash))
-     end}.
+    {setup, fun() -> ok = start_with(port) end,
+     [{timeout, 1000,
+       fun() ->
+               {ok, Salt} = bcrypt:gen_salt(),
+               {ok, Hash} = bcrypt:hashpw("foo", Salt),
+               ?assert({ok, Hash} =:= bcrypt:hashpw("foo", Hash)),
+               ?assertNot({ok, Hash} =:= bcrypt:hashpw("bar", Hash))
+       end}]}.
 
 pair_port_test_() ->
-    {timeout, 30000,
-     fun() ->
-             ok = start_with(port),
-             [?assert({ok, Hash} =:= bcrypt:hashpw(Pass, Salt)) ||
-                 {Pass, Salt, Hash} <- ?PAIRS]
-     end}.
+    {setup, fun() -> ok = start_with(port) end,
+     [?_assert({ok, Hash} =:= bcrypt:hashpw(Pass, Salt)) ||
+         {Pass, Salt, Hash} <- ?PAIRS]}.

@@ -18,6 +18,7 @@ logs/*
 *.loT
 *.o
 *.so
+*.dSYM*
 
 ## Distribution files
 *.gz

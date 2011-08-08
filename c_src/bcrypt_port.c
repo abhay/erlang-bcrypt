@@ -147,25 +147,38 @@ static int
 process_hashpw(ETERM *pid, ETERM *data)
 {
     int retval = 0;
-    ETERM *pattern, *pwd, *slt;
-    char *password, *salt;
+    ETERM *pattern, *pwd, *slt, *pwd_bin, *slt_bin;
+    char password[1024];
+    char salt[1024];
     char *ret = NULL;
+
+    (void)memset(&password, '\0', sizeof(password));
+    (void)memset(&salt, '\0', sizeof(salt));
+
     pattern = erl_format("{Pass, Salt}");
     if (erl_match(pattern, data)) {
         pwd = erl_var_content(pattern, "Pass");
-        password = erl_iolist_to_string(pwd);
+        pwd_bin = erl_iolist_to_binary(pwd);
         slt = erl_var_content(pattern, "Salt");
-        salt = erl_iolist_to_string(slt);
-        if (NULL == (ret = bcrypt(password, salt)) ||
-            0 == strcmp(ret, ":")) {
-            retval = process_reply(pid, CMD_HASHPW, "Invalid salt");
+        slt_bin = erl_iolist_to_binary(slt);
+        if (ERL_BIN_SIZE(pwd_bin) > sizeof(password)) {
+            retval = process_reply(pid, CMD_HASHPW, "Password too long");
+        } else if (ERL_BIN_SIZE(slt_bin) > sizeof(salt)) {
+            retval = process_reply(pid, CMD_HASHPW, "Salt too long");
         } else {
-            retval = process_reply(pid, CMD_HASHPW, ret);
+            memcpy(password, ERL_BIN_PTR(pwd_bin), ERL_BIN_SIZE(pwd_bin));
+            memcpy(salt, ERL_BIN_PTR(slt_bin), ERL_BIN_SIZE(slt_bin));
+            if (NULL == (ret = bcrypt(password, salt)) ||
+                0 == strcmp(ret, ":")) {
+                retval = process_reply(pid, CMD_HASHPW, "Invalid salt");
+            } else {
+                retval = process_reply(pid, CMD_HASHPW, ret);
+            }
         }
         erl_free_term(pwd);
         erl_free_term(slt);
-        erl_free(password);
-        erl_free(salt);
+        erl_free_term(pwd_bin);
+        erl_free_term(slt_bin);
     };
     erl_free_term(pattern);
     return retval;

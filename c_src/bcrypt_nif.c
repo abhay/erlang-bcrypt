@@ -80,4 +80,9 @@ static ErlNifFunc bcrypt_nif_funcs[] =
     {"hashpw", 2, hashpw}
 };
 
-ERL_NIF_INIT(bcrypt_nif, bcrypt_nif_funcs, NULL, NULL, NULL, NULL)
+static int on_load(ErlNifEnv* env, void** priv_data, ERL_NIF_TERM load_info)
+{
+    return 0;
+}
+
+ERL_NIF_INIT(bcrypt_nif, bcrypt_nif_funcs, &on_load, NULL, NULL, NULL)

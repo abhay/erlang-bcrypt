@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Hunter Morris <hunter.morris@smarkets.com>
+ * Copyright (c) 2011-2012 Hunter Morris <hunter.morris@smarkets.com>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -21,11 +21,7 @@
 
 #include "erl_nif.h"
 #include "erl_blf.h"
-
-typedef unsigned char byte;
-
-char *bcrypt(const char *, const char *);
-void encode_salt(char *, u_int8_t *, u_int16_t, u_int8_t);
+#include "bcrypt_nif.h"
 
 static ERL_NIF_TERM erl_encode_salt(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
@@ -80,8 +76,22 @@ static ErlNifFunc bcrypt_nif_funcs[] =
     {"hashpw", 2, hashpw}
 };
 
+static void bcrypt_rt_dtor(ErlNifEnv* env, void* obj)
+{
+}
+
 static int on_load(ErlNifEnv* env, void** priv_data, ERL_NIF_TERM load_info)
 {
+    const char *mod = "bcrypt_nif";
+    const char *name = "nif_resource";
+
+    ErlNifResourceFlags flags = (ErlNifResourceFlags)(ERL_NIF_RT_CREATE | ERL_NIF_RT_TAKEOVER);
+
+    bcrypt_privdata_t *priv = (bcrypt_privdata_t*)enif_alloc(sizeof(bcrypt_privdata_t));
+    priv->bcrypt_rt = enif_open_resource_type(env, mod, name, bcrypt_rt_dtor, flags, NULL);
+    if (priv->bcrypt_rt == NULL)
+        return -1;
+    *priv_data = priv;
     return 0;
 }
 

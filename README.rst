@@ -48,10 +48,10 @@ application's environment:
 
 ``mechanism``
   Specifies whether to use the NIF implementation (``'nif'``) or a
-  pool of port programs (``'port'``). Defaults to ``'port'``.
+  pool of port programs (``'port'``). Defaults to ``'nif'``.
 
-  `WARNING: the NIF implementation will block Erlang VM scheduler
-  threads and is not suitable for many applications.`
+  `Note: the NIF implementation no longer blocks the Erlang VM
+  scheduler threads`
 
 ``pool_size``
   Specifies the size of the port program pool. Defaults to ``4``.

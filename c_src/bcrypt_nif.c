@@ -23,7 +23,97 @@
 #include "erl_blf.h"
 #include "bcrypt_nif.h"
 
-static ERL_NIF_TERM erl_encode_salt(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
+void free_task(task_t* task)
+{
+    if (task->env != NULL)
+        enif_free_env(task->env);
+    enif_free(task);
+}
+
+task_t* alloc_task(task_type_t type)
+{
+    task_t* task = (task_t*)enif_alloc(sizeof(task_t));
+    if (task == NULL)
+        return NULL;
+    (void)memset(task, 0, sizeof(task_t));
+    task->type = type;
+    return task;
+}
+
+task_t* alloc_init_task(task_type_t type, ERL_NIF_TERM ref)
+{
+    task_t* task = alloc_task(type);
+    task->env = enif_alloc_env();
+    if (task->env == NULL) {
+        free_task(task);
+        return NULL;
+    }
+
+    task->ref = enif_make_copy(task->env, ref);
+    return task;
+}
+
+static ERL_NIF_TERM hashpw(task_t* task)
+{
+    char password[1024] = { 0 };
+    char salt[1024] = { 0 };
+    char *ret = NULL;
+
+    size_t password_sz = 1024;
+    if (password_sz > task->data.hash.password.size)
+        password_sz = task->data.hash.password.size;
+    (void)memcpy(&password, task->data.hash.password.data, password_sz);
+
+    size_t salt_sz = 1024;
+    if (salt_sz > task->data.hash.salt.size)
+        salt_sz = task->data.hash.salt.size;
+    (void)memcpy(&salt, task->data.hash.salt.data, salt_sz);
+
+    if (NULL == (ret = bcrypt(password, salt)) || 0 == strcmp(ret, ":")) {
+        return enif_make_tuple3(
+            task->env,
+            enif_make_atom(task->env, "error"),
+            task->ref,
+            enif_make_string(task->env, "bcrypt failed", ERL_NIF_LATIN1));
+    }
+
+    return enif_make_tuple3(
+        task->env,
+        enif_make_atom(task->env, "ok"),
+        task->ref,
+        enif_make_string(task->env, ret, ERL_NIF_LATIN1));
+}
+
+void* async_worker(void* arg)
+{
+    ctx_t* ctx;
+    task_t* task;
+
+    ERL_NIF_TERM result;
+
+    ctx = (ctx_t*)arg;
+
+    while (1) {
+        task = (task_t*)async_queue_pop(ctx->queue);
+
+        if (task->type == SHUTDOWN) {
+            break;
+        } else if (task->type == HASH) {
+            result = hashpw(task);
+        } else {
+            errx(1, "Unexpected task type: %i", task->type);
+        }
+
+        enif_send(NULL, &task->pid, task->env, result);
+        free_task(task);
+    }
+
+    // Cleanup the shutdown task
+    free_task(task);
+    return NULL;
+}
+
+static ERL_NIF_TERM bcrypt_encode_salt(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
     ErlNifBinary csalt, bin;
     unsigned long log_rounds;
@@ -48,7 +138,7 @@ static ERL_NIF_TERM erl_encode_salt(ErlNifEnv* env, int argc, const ERL_NIF_TERM
     return enif_make_string(env, (char *)bin.data, ERL_NIF_LATIN1);
 }
 
-static ERL_NIF_TERM hashpw(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
+static ERL_NIF_TERM bcrypt_hashpw(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
     char pw[1024];
     char salt[1024];
@@ -72,12 +162,20 @@ static ERL_NIF_TERM hashpw(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 
 static ErlNifFunc bcrypt_nif_funcs[] =
 {
-    {"encode_salt", 2, erl_encode_salt},
-    {"hashpw", 2, hashpw}
+    {"encode_salt", 2, bcrypt_encode_salt},
+    {"hashpw", 2, bcrypt_hashpw}
 };
 
 static void bcrypt_rt_dtor(ErlNifEnv* env, void* obj)
 {
+    ctx_t  *ctx = (ctx_t*)obj;
+    task_t *task = alloc_task(SHUTDOWN);
+    void   *result = NULL;
+
+    async_queue_push(ctx->queue, (void*)task);
+    enif_thread_join(ctx->tid, &result);
+    async_queue_destroy(ctx->queue);
+    enif_thread_opts_destroy(ctx->topts);
 }
 
 static int on_load(ErlNifEnv* env, void** priv_data, ERL_NIF_TERM load_info)

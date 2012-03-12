@@ -160,10 +160,29 @@ static ERL_NIF_TERM bcrypt_hashpw(ErlNifEnv* env, int argc, const ERL_NIF_TERM a
     return enif_make_string(env, ret, ERL_NIF_LATIN1);
 }
 
+static ERL_NIF_TERM bcrypt_create_ctx(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
+{
+    ERL_NIF_TERM ret;
+    bcrypt_privdata_t *priv = (bcrypt_privdata_t*)enif_priv_data(env);
+    ctx_t* ctx = (ctx_t*)enif_alloc_resource(priv->bcrypt_rt, sizeof(ctx_t));
+    if (ctx == NULL)
+        return enif_make_badarg(env);
+    ctx->queue = async_queue_create();
+    ctx->topts = enif_thread_opts_create("bcrypt_thread_opts");
+    if (enif_thread_create("bcrypt_worker", &ctx->tid, async_worker, ctx, ctx->topts) != 0) {
+        enif_release_resource(ctx);
+        return enif_make_badarg(env);
+    }
+    ret = enif_make_resource(env, ctx);
+    enif_release_resource(ctx);
+    return ret;
+}
+
 static ErlNifFunc bcrypt_nif_funcs[] =
 {
     {"encode_salt", 2, bcrypt_encode_salt},
-    {"hashpw", 2, bcrypt_hashpw}
+    {"hashpw", 2, bcrypt_hashpw},
+    {"create_ctx", 0, bcrypt_create_ctx},
 };
 
 static void bcrypt_rt_dtor(ErlNifEnv* env, void* obj)

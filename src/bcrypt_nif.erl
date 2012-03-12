@@ -22,7 +22,7 @@
 
 %% API
 -export([init/0]).
--export([gen_salt/1, hashpw/2]).
+-export([gen_salt/1, hashpw/2, create_ctx/0]).
 
 -on_load(init/0).
 
@@ -58,6 +58,14 @@ gen_salt(LogRounds)
     encode_salt(R, LogRounds).
 
 encode_salt(_R, _LogRounds) ->
+    nif_stub_error(?LINE).
+
+%%--------------------------------------------------------------------
+%% @doc Create a context which hashes passwords in a separate thread.
+%% @spec create_ctx() -> term()
+%% @end
+%%--------------------------------------------------------------------
+create_ctx() ->
     nif_stub_error(?LINE).
 
 %%--------------------------------------------------------------------

@@ -14,6 +14,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -40,13 +41,30 @@ task_t* alloc_task(task_type_t type)
     return task;
 }
 
-task_t* alloc_init_task(task_type_t type, ERL_NIF_TERM ref)
+task_t* alloc_init_task(task_type_t type, ERL_NIF_TERM ref, ErlNifPid pid, int num_orig_terms, const ERL_NIF_TERM orig_terms[])
 {
     task_t* task = alloc_task(type);
+    task->pid = pid;
     task->env = enif_alloc_env();
     if (task->env == NULL) {
         free_task(task);
         return NULL;
+    }
+
+    if (type == HASH) {
+        assert(num_orig_terms == 2);
+        if (!enif_inspect_iolist_as_binary(
+                task->env, enif_make_copy(task->env, orig_terms[0]),
+                &task->data.hash.salt)) {
+            free_task(task);
+            return NULL;
+        }
+        if (!enif_inspect_iolist_as_binary(
+                task->env, enif_make_copy(task->env, orig_terms[1]),
+                &task->data.hash.password)) {
+            free_task(task);
+            return NULL;
+        }
     }
 
     task->ref = enif_make_copy(task->env, ref);
@@ -97,6 +115,7 @@ void* async_worker(void* arg)
         task = (task_t*)async_queue_pop(ctx->queue);
 
         if (task->type == SHUTDOWN) {
+            free_task(task);
             break;
         } else if (task->type == HASH) {
             result = hashpw(task);
@@ -108,8 +127,6 @@ void* async_worker(void* arg)
         free_task(task);
     }
 
-    // Cleanup the shutdown task
-    free_task(task);
     return NULL;
 }
 
@@ -140,24 +157,33 @@ static ERL_NIF_TERM bcrypt_encode_salt(ErlNifEnv* env, int argc, const ERL_NIF_T
 
 static ERL_NIF_TERM bcrypt_hashpw(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
-    char pw[1024];
-    char salt[1024];
-    char *ret = NULL;
+    ctx_t *ctx;
+    task_t *task;
+    ErlNifPid pid;
 
-    (void)memset(&pw, '\0', sizeof(pw));
-    (void)memset(&salt, '\0', sizeof(salt));
-
-    if (enif_get_string(env, argv[0], pw, sizeof(pw), ERL_NIF_LATIN1) < 1)
+    if (argc != 5)
         return enif_make_badarg(env);
 
-    if (enif_get_string(env, argv[1], salt, sizeof(salt), ERL_NIF_LATIN1) < 1)
+    bcrypt_privdata_t *priv = (bcrypt_privdata_t*)enif_priv_data(env);
+
+    if (!enif_get_resource(env, argv[0], priv->bcrypt_rt, (void**)(&ctx)))
         return enif_make_badarg(env);
 
-    if (NULL == (ret = bcrypt(pw, salt)) || 0 == strcmp(ret, ":")) {
+    if (!enif_is_ref(env, argv[1]))
         return enif_make_badarg(env);
-    }
 
-    return enif_make_string(env, ret, ERL_NIF_LATIN1);
+    if (!enif_get_local_pid(env, argv[2], &pid))
+        return enif_make_badarg(env);
+
+    ERL_NIF_TERM orig_terms[] = { argv[4], argv[3] };
+    task = alloc_init_task(HASH, argv[1], pid, 2, orig_terms);
+
+    if (!task)
+        return enif_make_badarg(env);
+
+    async_queue_push(ctx->queue, task);
+
+    return enif_make_atom(env, "ok");
 }
 
 static ERL_NIF_TERM bcrypt_create_ctx(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
@@ -181,7 +207,7 @@ static ERL_NIF_TERM bcrypt_create_ctx(ErlNifEnv* env, int argc, const ERL_NIF_TE
 static ErlNifFunc bcrypt_nif_funcs[] =
 {
     {"encode_salt", 2, bcrypt_encode_salt},
-    {"hashpw", 2, bcrypt_hashpw},
+    {"hashpw", 5, bcrypt_hashpw},
     {"create_ctx", 0, bcrypt_create_ctx},
 };
 
@@ -191,7 +217,7 @@ static void bcrypt_rt_dtor(ErlNifEnv* env, void* obj)
     task_t *task = alloc_task(SHUTDOWN);
     void   *result = NULL;
 
-    async_queue_push(ctx->queue, (void*)task);
+    async_queue_push(ctx->queue, task);
     enif_thread_join(ctx->tid, &result);
     async_queue_destroy(ctx->queue);
     enif_thread_opts_destroy(ctx->topts);

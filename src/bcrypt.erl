@@ -6,7 +6,7 @@
 %% API
 -export([start/0, stop/0]).
 -export([mechanism/0]).
--export([gen_salt/0, gen_salt/1, hashpw/2, create_ctx/0]).
+-export([gen_salt/0, gen_salt/1, hashpw/2]).
 
 start() -> application:start(bcrypt).
 stop()  -> application:stop(bcrypt).
@@ -18,7 +18,6 @@ mechanism() ->
 gen_salt() -> do_gen_salt(mechanism()).
 gen_salt(Rounds) -> do_gen_salt(mechanism(), Rounds).
 hashpw(Password, Salt) -> do_hashpw(mechanism(), Password, Salt).
-create_ctx() -> do_create_ctx(mechanism()).
 
 do_gen_salt(nif)  -> bcrypt_nif_worker:gen_salt();
 do_gen_salt(port) -> bcrypt_pool:gen_salt().
@@ -28,6 +27,3 @@ do_gen_salt(port, Rounds) -> bcrypt_pool:gen_salt(Rounds).
 
 do_hashpw(nif, Password, Salt)  -> bcrypt_nif_worker:hashpw(Password, Salt);
 do_hashpw(port, Password, Salt) -> bcrypt_pool:hashpw(Password, Salt).
-
-do_create_ctx(nif) -> bcrypt_nif_worker:create_ctx();
-do_create_ctx(port) -> ok.

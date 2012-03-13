@@ -193,7 +193,7 @@ static ERL_NIF_TERM bcrypt_create_ctx(ErlNifEnv* env, int argc, const ERL_NIF_TE
     ctx_t* ctx = (ctx_t*)enif_alloc_resource(priv->bcrypt_rt, sizeof(ctx_t));
     if (ctx == NULL)
         return enif_make_badarg(env);
-    ctx->queue = async_queue_create();
+    ctx->queue = async_queue_create("bcrypt_queue_mutex", "bcrypt_queue_condvar");
     ctx->topts = enif_thread_opts_create("bcrypt_thread_opts");
     if (enif_thread_create("bcrypt_worker", &ctx->tid, async_worker, ctx, ctx->topts) != 0) {
         enif_release_resource(ctx);

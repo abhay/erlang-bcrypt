@@ -32,7 +32,7 @@
 #include "async_queue.h"
 
 async_queue_t*
-async_queue_create()
+async_queue_create(char* mutex_name, char* condvar_name)
 {
     async_queue_t *aq;
 
@@ -52,13 +52,13 @@ async_queue_create()
 
     aq->waiting_threads = aq->len = 0;
 
-    aq->mutex = enif_mutex_create("erlang_snappy_mutex");
+    aq->mutex = enif_mutex_create(mutex_name);
 
     if (!aq->mutex) {
         errx(1, "enif_mutex_create() failed");
     }
 
-    aq->cond = enif_cond_create("erlang_snappy_condvar");
+    aq->cond = enif_cond_create(condvar_name);
 
     if (!aq->cond) {
         errx(1, "enif_cond_create() failed");

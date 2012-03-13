@@ -63,7 +63,7 @@ typedef struct __async_queue {
     int           len;
 } async_queue_t;
 
-async_queue_t* async_queue_create();
+async_queue_t* async_queue_create(char* mutex_name, char* condvar_name);
 int async_queue_length(async_queue_t *aq);
 void* async_queue_pop(async_queue_t *aq);
 void async_queue_push(async_queue_t *aq, void *data);

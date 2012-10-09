@@ -9,3 +9,4 @@ tests:
 clean:
 	@rebar clean
 
+.PHONY: clean compile tests

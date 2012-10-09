@@ -4,3 +4,5 @@ compile:
 
 clean:
 	@rm -f ../priv/bcrypt
+
+.PHONY: clean compile

@@ -1,6 +1,9 @@
 erlang-bcrypt
 =============
 
+.. image:: https://travis-ci.org/smarkets/erlang-bcrypt.svg?branch=master
+    :target: https://travis-ci.org/smarkets/erlang-bcrypt
+
 erlang-bcrypt is a wrapper around the OpenBSD Blowfish password hashing
 algorithm, as described in `"A Future-Adaptable Password Scheme"`_ by Niels
 Provos and David Mazieres.

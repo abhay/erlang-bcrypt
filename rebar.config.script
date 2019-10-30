@@ -1,0 +1,7 @@
+case code:is_loaded(rebar3) of
+  false ->
+    C1 = proplists:delete(plugins, CONFIG),
+    proplists:delete(provider_hooks, C1);
+  {file, _} ->
+    proplists:delete(post_hooks, CONFIG)
+end.

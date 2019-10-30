@@ -1,6 +1,9 @@
 erlang-bcrypt
 =============
 
+.. image:: https://travis-ci.org/smarkets/erlang-bcrypt.svg?branch=master
+    :target: https://travis-ci.org/smarkets/erlang-bcrypt
+
 erlang-bcrypt is a wrapper around the OpenBSD Blowfish password hashing
 algorithm, as described in `"A Future-Adaptable Password Scheme"`_ by Niels
 Provos and David Mazieres.
@@ -11,34 +14,59 @@ Provos and David Mazieres.
 Basic build instructions
 ------------------------
 
-1. Build it::
+1. Build it (project uses rebar, but I've included a Makefile)::
 
         make
 
-2. Run it::
+2. Run it (simple way, starting sasl, crypto and bcrypt)::
 
-        erl -pa ebin
+        erl -pa ebin -boot start_sasl -s crypto -s bcrypt
 
 Basic usage instructions
 ------------------------
 
-1. Start the `sasl` and `crypto` applications::
+3. Hash a password using a salt with the default number of rounds::
 
-        1> ok = application:start(sasl).
-        ok
-        2> ok = application:start(crypto).
-        ok
-
-2. Hash a password using a salt with the default number of rounds::
-
-        4> Hash = bcrypt:hashpw("foo", bcrypt:gen_salt()).
-        "$2...000"
+        1> {ok, Salt} = bcrypt:gen_salt().
+        {ok,"$2a$12$sSS8Eg.ovVzaHzi1nUHYK."}
+        2> {ok, Hash} = bcrypt:hashpw("foo", Salt).
+        {ok,"$2a$12$sSS8Eg.ovVzaHzi1nUHYK.HbUIOdlQI0iS22Q5rd5z.JVVYH6sfm6"}
 
 3. Verify the password::
 
-        5> Hash =:= bcrypt:hashpw("foo", Hash).
+        3> {ok, Hash} =:= bcrypt:hashpw("foo", Hash).
         true
-        6> Hash =:= bcrypt:hashpw("bar", Hash).
+        4> {ok, Hash} =:= bcrypt:hashpw("bar", Hash).
         false
-   
-Authors: Hunter Morris (http://skarab.com/)
+
+Configuration
+-------------
+
+The bcrypt application is configured by changing values in the
+application's environment:
+
+``default_log_rounds``
+  Sets the default number of rounds which define the complexity of the
+  hash function. Defaults to ``12``.
+
+``mechanism``
+  Specifies whether to use the NIF implementation (``'nif'``) or a
+  pool of port programs (``'port'``). Defaults to ``'nif'``.
+
+  `Note: the NIF implementation no longer blocks the Erlang VM
+  scheduler threads`
+
+``pool_size``
+  Specifies the size of the port program pool. Defaults to ``4``.
+
+Authors
+-------
+
+* `Hunter Morris`_
+* `Mrinal Wadhwa`_
+
+.. _Hunter Morris:
+   http://github.com/skarab
+
+.. _Mrinal Wadhwa:
+   http://github.com/mrinalwadhwa

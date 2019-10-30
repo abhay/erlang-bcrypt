@@ -1,94 +1,29 @@
-%% @author Hunter Morris <huntermorris@gmail.com>
-%% @copyright 2009 Hunter Morris
-%%
-%% @doc Wrapper around the OpenBSD Blowfish password hashing algorithm, as
-%% described in "A Future-Adaptable Password Scheme" by Niels Provos and
-%% David Mazieres: http://www.openbsd.org/papers/bcrypt-paper.ps
-%% @end
-%%
-%% Permission to use, copy, modify, and distribute this software for any
-%% purpose with or without fee is hereby granted, provided that the above
-%% copyright notice and this permission notice appear in all copies.
-
-%% THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
-%% WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
-%% MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
-%% ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
-%% WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
-%% ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
-%% OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+%% Copyright (c) 2011 Hunter Morris
+%% Distributed under the MIT license; see LICENSE for details.
 -module(bcrypt).
--author('Hunter Morris <huntermorris@gmail.com>').
+-author('Hunter Morris <hunter.morris@smarkets.com>').
 
 %% API
--export([init/0]).
--export([gen_salt/0, gen_salt/1]).
--export([hash/2, hashpw/2]).
+-export([start/0, stop/0]).
+-export([mechanism/0]).
+-export([gen_salt/0, gen_salt/1, hashpw/2]).
 
--define(DEFAULT_LOG_ROUNDS, 12).
--define(MAX_LOG_ROUNDS(L), L < 32).
--define(MIN_LOG_ROUNDS(L), L > 3).
+start() -> application:start(bcrypt).
+stop()  -> application:stop(bcrypt).
 
--on_load(init/0).
+mechanism() ->
+    {ok, M} = application:get_env(bcrypt, mechanism),
+    M.
 
-%%--------------------------------------------------------------------
-%% @doc Load the bcrypt NIFs
-%% @spec init() -> ok
-%% @end
-%%--------------------------------------------------------------------
-init() ->
-    Path = filename:join([filename:dirname(code:which(?MODULE)),"..","priv",?MODULE]) ++ "_drv",
-    case filelib:is_file(Path ++ ".so") of
-      true -> erlang:load_nif(Path, 0);
-      false ->
-        Path1 = filename:join([code:lib_dir(),"erlang-bcrypt","priv",?MODULE]) ++ "_drv",
-        case filelib:is_file(Path1 ++ ".so") of
-          true -> erlang:load_nif(Path1, 0);
-          false ->
-            Path2 = filename:join([code:lib_dir(),"bcrypt","priv",?MODULE]) ++ "_drv",
-            case filelib:is_file(Path2 ++ ".so") of
-              true -> erlang:load_nif(Path2, 0);
-              false ->  exit({could_not_find_nif, module, ?MODULE, line, ?LINE})
-            end
-        end    
-    end.
+gen_salt() -> do_gen_salt(mechanism()).
+gen_salt(Rounds) -> do_gen_salt(mechanism(), Rounds).
+hashpw(Password, Salt) -> do_hashpw(mechanism(), Password, Salt).
 
-%%--------------------------------------------------------------------
-%% @doc Generate a salt with the default number of rounds, 12.
-%% @see gen_salt/1
-%% @spec gen_salt() -> string()
-%% @end
-%%--------------------------------------------------------------------
-gen_salt() ->
-    gen_salt(?DEFAULT_LOG_ROUNDS).
+do_gen_salt(nif)  -> bcrypt_nif_worker:gen_salt();
+do_gen_salt(port) -> bcrypt_pool:gen_salt().
 
-%%--------------------------------------------------------------------
-%% @doc Generate a random text salt for use with hashpw/3. LogRounds
-%% defines the complexity of the hashing, increasing the cost as
-%% 2^log_rounds.
-%% @spec gen_salt(integer()) -> string()
-%% @end
-%%--------------------------------------------------------------------
-gen_salt(LogRounds) when is_integer(LogRounds),
-                         ?MAX_LOG_ROUNDS(LogRounds),
-                         ?MIN_LOG_ROUNDS(LogRounds) ->
-    R = crypto:rand_bytes(16),
-    encode_salt(R, LogRounds).
+do_gen_salt(nif, Rounds)  -> bcrypt_nif_worker:gen_salt(Rounds);
+do_gen_salt(port, Rounds) -> bcrypt_pool:gen_salt(Rounds).
 
-encode_salt(_R, _LogRounds) ->
-    nif_error(?LINE).
-
-%%--------------------------------------------------------------------
-%% @doc Hash the specified password and the salt using the OpenBSD
-%% Blowfish password hashing algorithm. Returns the hashed password.
-%% @spec hashpw(Password::binary(), Salt::binary()) -> string()
-%% @end
-%%--------------------------------------------------------------------
-hash(Password, Salt) when is_binary(Password), is_binary(Salt) ->
-    hashpw(Password, Salt).
-
-hashpw(_Password, _Salt) ->
-    nif_error(?LINE).
-
-nif_error(Line) ->
-    exit({nif_not_loaded, module, ?MODULE, line, Line}).
+do_hashpw(nif, Password, Salt)  -> bcrypt_nif_worker:hashpw(Password, Salt);
+do_hashpw(port, Password, Salt) -> bcrypt_pool:hashpw(Password, Salt).
